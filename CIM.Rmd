@@ -1,0 +1,51 @@
+---
+title: "**Computer Intensive Methods - Final projects (2022)**"
+output: 
+  bookdown::pdf_document2:
+      latex_engine: xelatex
+      toc: true
+      toc_depth: 3
+      number_sections: true
+      # df_print: kable
+      highlight: kate 
+subtitle:  |
+  **Group **: 
+  Deo Byabazaire (2159254), 
+  Mirriam Dianah Lucheveleli (2159277)
+  Farida Iddy (2159270)
+  Quynh Long Khuong (2159280)  
+    
+fontsize: 11pt
+mainfont: Times New Roman #Georgia
+geometry: margin=1in
+layout: page
+keep-latex: true
+links-as-notes: true
+urlcolor: orange
+linkcolor: orange
+---
+
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(echo = TRUE, 
+                      message = FALSE,	
+                      warning = FALSE,
+                      eval = TRUE,
+                      tidy = FALSE)
+
+library(tidyverse)
+library(magrittr)
+library(knitr)
+library(kableExtra)
+```
+
+
+\newpage
+
+
+
+
+
+
+
