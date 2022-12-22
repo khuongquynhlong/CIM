@@ -10,9 +10,9 @@ output:
       highlight: kate 
 subtitle:  |
   **Group **: 
-  Deo Byabazaire (2159254), 
-  Mirriam Dianah Lucheveleli (2159277)
-  Farida Iddy (2159270)
+  Deo Byabazaire (2159254)  
+  Mirriam Dianah Lucheveleli (2159277)  
+  Farida Iddy (2159270)  
   Quynh Long Khuong (2159280)  
     
 fontsize: 11pt
@@ -45,7 +45,279 @@ library(kableExtra)
 
 
 
+# Project 1
 
 
+```{r}
+library("DAAG")
+data(nassCDS)
+names(nassCDS)
+dim(nassCDS)
+# Check missing value
+sapply(nassCDS, function(x){sum(is.na(x))})
+# complete-case data
+nassCDS <- na.omit(nassCDS) %>% mutate(dead = ifelse(dead == "dead", 1, 0))
+dim(nassCDS)
+```
+
+## Question 1
+
+Let $Y_i$ be an indicator variable which takes the value of 1 if an occupant died in an accident (the variable `dead`) and zero otherwise and $X_i$ be the age of occupant in years (the variable `ageOFocc`). We consider the following GLM
+
+$$g(P(Y_i = 1)) = \beta_0 + \beta_1X_i$$
+
+1. Estimate the model using the classical GLM approach
+
+
+```{r}
+glm_dead <- glm(dead ~ ageOFocc, data = nassCDS, family = "binomial")
+summary(glm_dead)
+```
+2. Let $X_50$ be the age of occupant for which the probability to die is 0.5 $P(Y_i = 1) = 0.5$. Estimate $X_50$. Use non parametric bootstrap to estimate the distribution of $X_50$
+and construct a 95% for the $X_50$
+
+```{r}
+B <- 1000
+n <- length(nassCDS$dead)
+index <- c(1:n)
+X_50 <- c()
+
+for (i in seq(B)) {
+    index.b <- sample(index, n, replace=TRUE)
+    dead <- nassCDS$dead[index.b]
+    ageOFocc <- nassCDS$ageOFocc[index.b]
+    glm_dead2 <- glm(dead ~ ageOFocc, family = "binomial")
+    X_50[i] <- (-coef(glm_dead2)[[1]])/coef(glm_dead2)[[2]]
+}
+# Distribution of X50
+hist(X_50)
+# Estimate 95% CI
+c(quantile(X_50, 0.025), quantile(X_50, 0.975))
+```
+3. For the model formulated above, we focus on the odds ratio (OR) for a unit increased
+in age. Estimate the OR and Use parametric bootstrap to test the null hypothesis
+$H_0: OR = 1$
+
+```{r}
+glm_dead_null <- glm(dead ~ 1, data = nassCDS, family = "binomial")
+summary(glm_dead_null)
+```
+
+```{r}
+glm_dead_null <- glm(dead ~ 1, data = nassCDS, family = "binomial")
+eta <- coef(glm_dead_null)[[1]]
+prob_dead <- exp(eta)/(1 + exp(eta))
+
+B <- 1000
+n <- length(nassCDS$dead)
+
+beta0 <- c()
+beta1 <- c()
+
+for (i in seq(B)) {
+    dead_pred <- rbinom(n, 1, prob_dead)
+    glm_dead2 <- glm(dead_pred ~ nassCDS$ageOFocc, family = "binomial")
+    beta0[i] <- coef(glm_dead2)[[1]]
+    beta1[i] <- coef(glm_dead2)[[2]]
+}
+```
+
+```{r}
+beta1_hat <- coef(glm_dead)[[2]] # Observed beta1
+beta1 %>% as_tibble() %>% 
+    ggplot(aes(x = beta1)) + 
+    geom_histogram(fill = "navy", color = "white") + 
+    geom_vline(xintercept = beta1_hat, color = "red") +
+    theme_minimal()
+
+
+pvalue <- (1 + sum(abs(beta1_hat) < abs(beta1))) /(B+1)
+pvalue
+```
+
+
+4. Let $\pi_{33}$ be the probability of death for an occupant at age 33. Use parametric
+bootstrap to calculate the standard error for $\hat{\pi_{33}}$ and construct a 90% bootstrap t C.I. for $\pi_{33}$
+
+
+```{r}
+beta0_hat <- coef(glm_dead)[[1]] 
+beta1_hat <- coef(glm_dead)[[2]] 
+
+eta_hat <- beta0_hat + beta1_hat*33
+prob_dead_hat <- exp(eta_hat)/(1 + exp(eta_hat))
+
+B <- 1000
+n <- length(nassCDS$dead)
+
+prob_dead332 <- c()
+
+for (i in seq(B)) {
+    dead_pred <- rbinom(n, 1, prob_dead_hat)
+    glm_dead2 <- glm(dead_pred ~ 1, family = "binomial")
+    beta0 <- coef(glm_dead2)[[1]]
+    eta <- beta0
+    prob_dead332[i] <- exp(eta)/(1 + exp(eta))
+}
+
+hist(prob_dead33)
+sd(prob_dead33) # SE
+# Estimate 95% CI
+c(quantile(prob_dead33, 0.05), quantile(prob_dead33, 0.95))
+```
+
+## Question 2
+
+In this question we use the same model formulated in Q1. Let the parameters vector be
+$\eta = (\beta_0, \beta_1)$ and the parameter estimates be $\hat{\eta} = (\hat{\beta_0}, \hat{\beta_1})$. Use parametric and non parametric bootstrap in order to:
+
+1. Approximate the distribution of $\hat{\eta}$, i.e., the joint distribution of $\hat{\beta_0}$ and $\hat{\beta_1}$.
+2. Construct a joint 95% confidence interval for $\eta$
+
+### Non-parametric bootstrap
+
+
+```{r}
+B <- 1000
+n <- length(nassCDS$dead)
+index <- c(1:n)
+beta0 <- c()
+beta1 <- c()
+
+for (i in seq(B)) {
+    index.b <- sample(index, n, replace=TRUE)
+    dead <- nassCDS$dead[index.b]
+    ageOFocc <- nassCDS$ageOFocc[index.b]
+    glm_dead2 <- glm(dead ~ ageOFocc, family = "binomial")
+    beta0[i] <- coef(glm_dead2)[[1]]
+    beta1[i] <- coef(glm_dead2)[[2]]
+}
+# Joint distribution
+eta = c(beta0, beta1)
+hist(eta)
+# Estimate 95% CI
+c(quantile(eta, 0.05), quantile(eta, 0.95))
+```
+
+### Parametric bootstrap
+
+```{r}
+beta0_hat <- coef(glm_dead)[[1]]
+beta1_hat <- coef(glm_dead)[[2]]
+
+
+B <- 1000
+n <- length(nassCDS$dead)
+
+beta0 <- c()
+beta1 <- c()
+dead <- c()
+
+for (i in seq(B)) {
+    for (j in seq(n)) {
+        eta <- beta0_hat + beta1_hat*nassCDS$ageOFocc[j]
+        yprob <- exp(eta)/(1 + exp(eta))
+        dead[j] <- rbinom(1, 1, yprob)
+    }
+    glm_dead2 <- glm(dead ~ nassCDS$ageOFocc, family = "binomial")
+    beta0[i] <- coef(glm_dead2)[[1]]
+    beta1[i] <- coef(glm_dead2)[[2]]
+}
+
+# Joint distribution
+eta = c(beta0, beta1)
+hist(eta)
+# Estkimate 95% CI
+c(quantile(eta, 0.05), quantile(eta, 0.95))
+```
+
+
+## Question 3
+
+In this question we focus of the following 2 × 2 table (for the complete case analysis) for the
+variables airbag and dead
+
+
+```{r}
+nassCDS %<>% mutate(airbag = ifelse(airbag == "airbag", 1, 0))
+```
+
+
+1. Define the observation unit $(X_i, Y_i)$ for the question
+
+
+```{r}
+table(nassCDS$airbag, nassCDS$dead)
+```
+
+
+
+2. Calculate the odds ratio for usage of airbag and the accident outcome (dead/alive)
+and construct 95% confidence interval. You can use the R function `oddsratio`. What is your conclusions? Do you think that airbags in the car influence the accident outcome ?
+
+
+```{r}
+library(epitools)
+x <- oddsratio(nassCDS$airbag, nassCDS$dead)$measure
+x[2, ][[1]] # Odds ratio
+c(x[2, ][[2]], x[2, ][[3]])
+
+```
+
+3. Use parametric bootstrap to construct a construct a 95% confidence interval for the OR
+
+
+```{r}
+nn <- length(nassCDS$dead)
+m <- 1180
+n <- 24883
+k <- 14336
+a <- rhyper(nn, m, n, k)
+mean(a)
+```
+
+```{r}
+b <- k - a
+c <- m - a
+d <- n - k - a
+OR <- a*d/(b*c)
+hist(OR)
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+
+```
 
 
