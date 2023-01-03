@@ -56,7 +56,8 @@ dim(nassCDS)
 # Check missing value
 sapply(nassCDS, function(x){sum(is.na(x))})
 # complete-case data
-nassCDS <- na.omit(nassCDS) %>% mutate(dead = ifelse(dead == "dead", 1, 0))
+nassCDS <- na.omit(nassCDS) %>% mutate(dead = ifelse(dead == "dead", 1, 0),
+                                       airbag = ifelse(airbag == "airbag", 1, 0))
 dim(nassCDS)
 ```
 
@@ -285,25 +286,47 @@ hist(OR)
 ```
 
 
-```{r}
+4. Use permutations to test the hypothesis that airbags in the car DO NOT influence the accident outcome using a chi-square test for a 2 × 2 table
 
+
+```{r}
+table(nassCDS$airbag)
+table(nassCDS$dead)
 ```
 
 
 ```{r}
+B <- 1000
+chi.boot <- c()
+n <- length(nassCDS$airbag)
 
+for (i in 1:B) {
+    airbag.boot <- sample(nassCDS$airbag, size = n, replace = F)
+    dead.boot <- sample(nassCDS$dead, size = n, replace = F)
+    chi.boot[i] <- chisq.test(airbag.boot, dead.boot)$statistic
+}
 ```
-
 
 
 ```{r}
-
+hist(chi.boot)
 ```
 
 
 ```{r}
-
+# Observed statistic
+chi.obs <- chisq.test(nassCDS$airbag, nassCDS$dead)$statistic
+# p-value
+(1 + sum(chi.boot > chi.obs))/(B+1)
 ```
+
+
+
+## Question 4
+
+
+1. Estimate the proportion of male () and female () that died in the accidents
+
 
 
 ```{r}
